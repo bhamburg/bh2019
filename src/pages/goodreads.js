@@ -1,4 +1,4 @@
-import React, { Component } from "react"
+import React, { useState, useEffect } from "react"
 import Container from '@material-ui/core/Container'
 import Box from '@material-ui/core/Box'
 import Card from '@material-ui/core/Card';
@@ -15,121 +15,16 @@ import convert from "xml-js"
 const PROXY = "https://cors-anywhere.herokuapp.com/"
 const APIKEY = "WtRxj0qGSLZH6RXaR3BRg"
 
-class ReadingList extends Component {
-  state = {
-    currentlyReadingLoading: false,
-    readLoading: false,
-    error: false,
-    currentlyReading: [],
-    read: [],
-  }
+export default function ReadingList() {
 
-  componentDidMount() {
-    this.fetchCurrentlyReadingList()
-    this.fetchReadList()
-  }
+  const [error, setError] = useState(false)
+  const [curReading, setCurReading] = useState([])
+  const [read, setRead] = useState([])
+  const [curReadLoading, setCurReadLoading] = useState(false)
+  const [readLoading, setReadLoading] = useState(false)
 
-  render() {
-    return (
-      <Container maxWidth="lg">
-        <Box my={4}>
-          <Typography gutterBottom variant="h3" component="h2">Reading List</Typography>
-          {!this.state.error ? <>
-          <Typography gutterBottom variant="h4" component="h3">Currently Reading</Typography>
-          {this.state.currentlyReadingLoading && 
-            <CircularProgress />
-          }
-          {!this.state.currentlyReadingLoading && (
-          <div>
-            {this.state.currentlyReading.map((book, i) => {
-              let title = book.elements[1].elements[5].elements[0]['text']
-              let url = book.elements[1].elements[10].elements[0]['text']
-              let imageUrl = book.elements[1].elements[7].elements[0]['text']
-              let desc = book.elements[1].elements[20].elements ? book.elements[1].elements[20].elements[0]['text'] : "(no description)"
-              return (
-                <Card key={i}>
-                  <CardActionArea>
-                    <CardMedia 
-                      component="img"
-                      alt={title}
-                      image={imageUrl}
-                      title={title} 
-                    />
-                    <CardContent>
-                      <Typography gutterBottom variant="h5" component="h4">
-                        {title}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary" component="p">
-                        {desc}
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                  <CardActions>
-                    <Button 
-                      size="small" 
-                      color="primary"
-                      onClick={() => window.open(url)}
-                    >
-                      Learn More
-                    </Button>
-                  </CardActions>
-                </Card>
-              )
-            })}
-          </div>)}
-          <Typography gutterBottom variant="h4" component="h3">Recently Read</Typography>
-          {this.state.readLoading && 
-            <CircularProgress />
-          }
-          {!this.state.readLoading && (
-          <div>
-            {this.state.read.map((book, i) => {
-              let title = book.elements[1].elements[5].elements[0]['text']
-              let url = book.elements[1].elements[10].elements[0]['text']
-              let imageUrl = book.elements[1].elements[7].elements[0]['text']
-              let desc = book.elements[1].elements[20].elements ? book.elements[1].elements[20].elements[0]['text'] : "(no description)"
-              return (
-                <Card key={i}>
-                  <CardActionArea>
-                    <CardMedia 
-                      component="img"
-                      alt={title}
-                      image={imageUrl}
-                      title={title} 
-                    />
-                    <CardContent>
-                      <Typography gutterBottom variant="h5" component="h4">
-                        {title}
-                      </Typography>
-                      <Typography variant="body2" color="textSecondary" component="p">
-                        {desc}
-                      </Typography>
-                    </CardContent>
-                  </CardActionArea>
-                  <CardActions>
-                    <Button 
-                      size="small" 
-                      color="primary"
-                      onClick={() => window.open(url)}
-                    >
-                      Learn More
-                    </Button>
-                  </CardActions>
-                </Card>
-              )
-            })}
-          </div>)}
-          <br /><a href="https://www.goodreads.com/review/list/4284038-brian-hamburg">View All Books</a>
-          </>
-          : <div>Error loading lists!</div>
-          }
-        </Box>
-      </Container>
-    )
-  }
-
-  fetchCurrentlyReadingList = () => {
-    this.setState({ currentlyReadingLoading: true })
+  useEffect(() => {
+    setCurReadLoading(true)
     axios
       .get(`${PROXY}https://www.goodreads.com/review/list/4284038.xml?key=${APIKEY}&v=2&shelf=currently-reading`)
       .then((res) => {
@@ -137,17 +32,16 @@ class ReadingList extends Component {
         let parsedJSON = JSON.parse(convert.xml2json(xml))
         let books = parsedJSON.elements[0].elements[2].elements
         console.dir(books)
-        this.setState({ currentlyReadingLoading: false, currentlyReading: books },
-          ()=>console.dir(this.state)
-        )
+        setCurReadLoading(false)
+        setCurReading(books)
       })
       .catch(error => {
-        this.setState({ currentlyReadingLoading: false, error })
+        setCurReadLoading(false)
+        setError(error)
+        console.log(error)
       })
-  }
-
-  fetchReadList = () => {
-    this.setState({ readLoading: true })
+  
+    setReadLoading(true)
     axios
       .get(`${PROXY}https://www.goodreads.com/review/list/4284038.xml?key=${APIKEY}&v=2&shelf=read`)
       .then((res) => {
@@ -155,15 +49,110 @@ class ReadingList extends Component {
         let parsedJSON = JSON.parse(convert.xml2json(xml))
         let books = parsedJSON.elements[0].elements[2].elements
         console.dir(books)
-        this.setState({ readLoading: false, read: books },
-          ()=>console.dir(this.state)
-        )
+        setReadLoading(false)
+        setRead(books)
       })
-      .catch(error => { 
-        this.setState({ readLoading: false, error })
+      .catch(error => {
+        setReadLoading(false)
+        setError(error)
+        console.log(error)
       })
-  }
+  },[])
 
+  return (
+    <Container maxWidth="lg">
+      <Box my={4}>
+        <Typography gutterBottom variant="h3" component="h2">Reading List</Typography>
+        {!error ? <>
+        <Typography gutterBottom variant="h4" component="h3">Currently Reading</Typography>
+        {curReadLoading && 
+          <CircularProgress />
+        }
+        {!curReadLoading && (
+        <div>
+          {curReading.map((book, i) => {
+            let title = book.elements[1].elements[5].elements[0]['text']
+            let url = book.elements[1].elements[10].elements[0]['text']
+            let imageUrl = book.elements[1].elements[7].elements[0]['text']
+            let desc = book.elements[1].elements[20].elements ? book.elements[1].elements[20].elements[0]['text'] : "(no description)"
+            return (
+              <Card key={i}>
+                <CardActionArea>
+                  <CardMedia 
+                    component="img"
+                    alt={title}
+                    image={imageUrl}
+                    title={title} 
+                  />
+                  <CardContent>
+                    <Typography gutterBottom variant="h5" component="h4">
+                      {title}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" component="p">
+                      {desc}
+                    </Typography>
+                  </CardContent>
+                </CardActionArea>
+                <CardActions>
+                  <Button 
+                    size="small" 
+                    color="primary"
+                    onClick={() => window.open(url)}
+                  >
+                    Learn More
+                  </Button>
+                </CardActions>
+              </Card>
+            )
+          })}
+        </div>)}
+        <Typography gutterBottom variant="h4" component="h3">Recently Read</Typography>
+        {readLoading && 
+          <CircularProgress />
+        }
+        {!readLoading && (
+        <div>
+          {read.map((book, i) => {
+            let title = book.elements[1].elements[5].elements[0]['text']
+            let url = book.elements[1].elements[10].elements[0]['text']
+            let imageUrl = book.elements[1].elements[7].elements[0]['text']
+            let desc = book.elements[1].elements[20].elements ? book.elements[1].elements[20].elements[0]['text'] : "(no description)"
+            return (
+              <Card key={i}>
+                <CardActionArea>
+                  <CardMedia 
+                    component="img"
+                    alt={title}
+                    image={imageUrl}
+                    title={title} 
+                  />
+                  <CardContent>
+                    <Typography gutterBottom variant="h5" component="h4">
+                      {title}
+                    </Typography>
+                    <Typography variant="body2" color="textSecondary" component="p">
+                      {desc}
+                    </Typography>
+                  </CardContent>
+                </CardActionArea>
+                <CardActions>
+                  <Button 
+                    size="small" 
+                    color="primary"
+                    onClick={() => window.open(url)}
+                  >
+                    Learn More
+                  </Button>
+                </CardActions>
+              </Card>
+            )
+          })}
+        </div>)}
+        <br /><a href="https://www.goodreads.com/review/list/4284038-brian-hamburg">View All Books</a>
+        </>
+        : <div>Error loading lists!</div>
+        }
+      </Box>
+    </Container>
+  )
 }
-
-export default ReadingList
